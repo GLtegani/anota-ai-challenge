@@ -6,6 +6,8 @@ import com.devtegani.anota_ai_challenge.entities.product.Product;
 import com.devtegani.anota_ai_challenge.entities.product.ProductDTO;
 import com.devtegani.anota_ai_challenge.entities.product.exceptions.ProductNotFoundException;
 import com.devtegani.anota_ai_challenge.repositories.ProductRepository;
+import com.devtegani.anota_ai_challenge.services.aws.AwsSnsService;
+import com.devtegani.anota_ai_challenge.services.aws.MessageDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,12 +19,15 @@ public class ProductService {
    private ProductRepository productRepository;
    @Autowired
    private CategoryService categoryService;
+   @Autowired
+   private AwsSnsService awsSnsService;
 
    public final Product insert(ProductDTO productData) {
       Category category = this.categoryService.getById(productData.categoryId()).orElseThrow(CategoryNotFoundException::new);
       Product newProduct = new Product(productData);
       newProduct.setCategory(category);
       this.productRepository.save(newProduct);
+      this.awsSnsService.publish(new MessageDTO(newProduct.getOwnerId()));
       return newProduct;
    }
 
@@ -50,6 +55,8 @@ public class ProductService {
       }
 
       this.productRepository.save(product);
+      this.awsSnsService.publish(new MessageDTO(product.getOwnerId()));
+
       return product;
    }
 
